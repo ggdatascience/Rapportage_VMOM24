@@ -1,0 +1,83 @@
+---
+title: "Gemeenteprofiel `r params$gemeentenaam`"
+author: ""
+lang: nl
+execute:
+  echo: false
+  message: false
+  warning: false
+format: 
+  html:
+    page-layout: full
+    toc: TRUE
+    toc-location: left
+    toc-depth: 3
+    toc-title: "Inhoudsopgave"
+    code-fold: true
+    embed-resources: true
+    css: custom.css
+params:
+  gemeentecode: 1948
+  regiocode: 21
+  regionaam: "GGD Hart voor Brabant"
+  path_hulpfuncties: "hulpfuncties.R"
+  path_monitor_data_2024_landelijk: ""
+  path_monitor_data_2024_regio: ""
+  path_monitor_data_2022: ""
+  path_monitor_data_2020: ""
+  path_monitor_data_2016: ""
+  default_nvar: 100 # Minimum aantal invullers per vraag
+  default_ncel: 10 # Minimum aantal invullers open antwoordoptie
+  default_kleuren_grafiek: !expr c("")
+  default_kleuren_responstabel: !expr C(")
+  is_pdf: false
+format-links: false
+
+---
+
+```{r Instellingen}
+#Libraries inladen
+# Het script maakt gebruik van een aantal packages
+# Deze moeten bij de eerste keer lokaal worden geinstalleerd
+
+# benodigde packages installeren als deze afwezig zijn
+pkg_nodig = c("gt", "dplyr", "ggplot2", "tidyr", "haven", "stringr", "labelled", 
+              "survey", "glue", "forcats", "openxlsx", "showtext")
+
+for (pkg in pkg_nodig) {
+  if (system.file(package = pkg) == "") {
+    install.packages(pkg)
+  }
+}
+
+# Opschonen
+rm(pkg, pkg_nodig)
+
+# Hieronder worden de benodige packages geladen
+library(gt)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(haven)
+library(stringr) # Voor str_replace & str_wrap
+library(labelled) # Package om te werken met datalabels, o.a. voor to_character()
+library(survey) # Package om te werken met gewogen gemiddelds incl. betrouwbaarheidsintervallen
+library(glue) #om strings aangenaam aan elkaar te plakken
+library(forcats)
+library(openxlsx) #om cbs populatiebestand te kunnen lezen
+library(showtext) #om andere lettertypen te kunnen gebruiken
+ 
+options(dplyr.summarise.inform = FALSE)
+source(params$path_hulpfuncties)
+
+```
+
+<!-- De aparte onderwerpen staan elk in een eigen bestand, voor het makkelijk terugvinden en omdat er tijdens het testen dan hoofdstukken aan en uit gezet kunnen worden.
+Het renderen wordt namelijk traag als het script lang wordt -->
+
+<!-- Source hoofdstuk 'Ervaren gezondheid' -->
+{{< include Ervaren-gezondheid.qmd >}} 
+
+<!-- Source hoofdstuk 'Leefomgeving' -->
+{{< include Leefomgeving.qmd >}} 
+

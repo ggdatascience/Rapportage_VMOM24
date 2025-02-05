@@ -1,0 +1,19 @@
+
+# Ervaren gezondheid
+
+Gezondheid is meer dan de afwezigheid van lichamelijke klachten. De ervaren gezondheid is daarom een belangrijke maat om de algemene gezondheid te meten onder de bevolking. Mensen kunnen zelf het beste aangeven hoe zij hun eigen gezondheid ervaren.
+
+::::: {layout="[33,33, 33]"}
+::: column
+```{r gezondheid 1}
+
+getallen = c(monitor_df %>% maak_percentage(var_inhoud = 'GZSLA401', niveau = "gemeente"),
+             monitor_df %>% maak_percentage(var_inhoud = 'GZSLA401', niveau = "regio"),
+             monitor_df %>% maak_percentage(var_inhoud = 'GZSLA401', niveau = "nl"))
+
+getallen %>% 
+  bol_met_cijfer(niveau = c("Gemeente", "Regio", "Landelijk"), 
+                 omschrijving = "Ervaart de eigen gezondheid als (zeer) goed")
+
+```
+:::
