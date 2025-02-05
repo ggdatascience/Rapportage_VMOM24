@@ -21,7 +21,12 @@ params:
   regiocode: 21
   regionaam: "GGD Hart voor Brabant"
   path_hulpfuncties: "hulpfuncties.R"
+<<<<<<< HEAD
+  path_monitor_data_2024_landelijk: ""
+  path_monitor_data_2024_regio: ""
+=======
   path_monitor_data_2024: ""
+>>>>>>> 3b37be615a3f355407df5d4cfec7c8e6f935a2c1
   path_monitor_data_2022: ""
   path_monitor_data_2020: ""
   path_monitor_data_2016: ""
