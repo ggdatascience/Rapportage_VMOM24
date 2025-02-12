@@ -4,21 +4,41 @@
 
 Gezondheid is meer dan de afwezigheid van lichamelijke klachten. De ervaren gezondheid is daarom een belangrijke maat om de algemene gezondheid te meten onder de bevolking. Mensen kunnen zelf het beste aangeven hoe zij hun eigen gezondheid ervaren.
 
-::::: {layout="[33,33, 33]"}
+::::: {layout="[50, 50]"}
 ::: column
 ```{r gezondheid 1}
 
-getallen = c(monitor_df %>% maak_percentage(var_inhoud = 'GZSLA401', niveau = "gemeente"),
-             monitor_df %>% maak_percentage(var_inhoud = 'GZSLA401', niveau = "regio"),
-             monitor_df %>% maak_percentage(var_inhoud = 'GZSLA401', niveau = "nl"))
+getallen = c(data_regio_2022 %>% maak_percentage(var_inhoud = 'KLGGA208', design = design_regio_2022,
+                                                 niveau = "gemeente", gemeentekolom = "Gemeentecode", stratum_kolom = "PrimaireEenheid"),
+             data_regio_2022 %>% maak_percentage(var_inhoud = 'KLGGA208', design = design_regio_2022, niveau = "regio"),
+             data_landelijk_2022 %>% maak_percentage(var_inhoud = 'KLGGA208', design = design_landelijk_2022, niveau = "nl"))
 
-getallen %>% 
-  bol_met_cijfer(niveau = c("Gemeente", "Regio", "Landelijk"), 
+getallen %>%
+  bol_met_cijfer(niveau = c("Gemeente", "Regio", "Landelijk"),
                  omschrijving = "Ervaart de eigen gezondheid als (zeer) goed")
+
+
+```
+:::
+::::
+
+
+```{r gezondheid vergelijking}
+
+
+# monitor_df %>% maak_vergelijking(var_inhoud = 'AGHHA401', variabele_label = 'bij ouders/verzorgers woont', var_crossing = 'AGOJB401', niveau = "regio")
+
+# Origineel is gebaseerd op alle data in 1 dataframe, en 1 survey design. Bij mij is het te gebruiken survey design echter mogelijk anders per variabele, dus deze moet
+# meegegeven worden als parameter. Dit feit is ook de reden waarom ik landelijke data en regionale data niet heb samengevoegd.
+
+# Dus to do: herschrijf de maak_vergelijking functie, zodat het meerdere databestanden als parameter neemt, en meerdere survey designs. 
+
+
 
 ```
 
-:::
-::::
+
+Het percentage inwoners in uw gemeente dat de eigen gezondheid als (zeer) goed ervaart is [vergelijkbaar met/hoger dan/lager dan] params$regionaam en [vergelijkbaar met/hoger dan/lager dan] Nederland. 
+
 
 

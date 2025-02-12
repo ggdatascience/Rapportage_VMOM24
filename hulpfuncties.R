@@ -99,9 +99,7 @@ survey_design_maken <- function(data = NULL, strata = NULL, gewichten = NULL){
     error_strata <- ifelse(all(is.na(data[[strata]])),paste0("alle data voor stratum: '",strata,"' is missing. 
                                                              \n Pas dit aan in het SPSS bestand"),"")
     error_gewichten <- ifelse(all(is.na(data[[gewichten]])),paste0("\n Alle data voor gewicht: '",gewichten,"' is missing. 
-                                                                   \n Pas dit aan in het SPSS bestand.  
-                                                                   \n Of wijzig de instelling: 'algemeen:missing_weegfactoren' in de configuratie.
-                                                                   \nGeldige instellingen zijn: 'fout', 'verwijderen', een getal waarmee missings vervangen worden"),"")
+                                                                   \n Pas dit aan in het SPSS bestand."),"")
     
     
     stop(paste(error_strata,"\n _________ \n", error_gewichten))
@@ -221,11 +219,11 @@ bereken_kruistabel <- function(data, survey_design = NULL, variabele = NULL, cro
     ))
   }
   
-  #survey pikt het niet als delen v formules niet in .globalEnv staan. Daarom <<- en later
-  #opruimen.
+  # survey pikt het niet als delen v formules niet in .globalEnv staan. Daarom <<- en later
+  # opruimen.
   data_global <<- data
   
-  #Niet-valide invoer afvangen & warning geven
+  # Niet-valide invoer afvangen & warning geven
   if(is.null(data_global[[variabele]])) {
     
     warning(paste("Variabele", variabele, "bestaat niet in dataset. Kruistabel wordt niet berekend."))
@@ -245,11 +243,11 @@ bereken_kruistabel <- function(data, survey_design = NULL, variabele = NULL, cro
     
   }
   
-  #Bereken kruistabel  
+  # Bereken kruistabel  
   
   antwoorden <-  attr(data_global[[variabele]], "labels") # value labels
   
-  #Formule maken voor in svytable
+  # Formule maken voor in svytable
   formule_tekst <- paste0("~ ", substitute(data_global), "[['", variabele,"']]")
   
   tb <- svytable(formula = eval(parse(text = formule_tekst)), design = survey_design) 
@@ -2881,105 +2879,116 @@ maak_cirkeldiagram <- function(data, var_inhoud, titel = "", kleuren = params$de
   
 }
 
-bol_met_cijfer <- function(getal, omschrijving = NA, omschrijving2 = NA, niveau = NA,
+bol_met_cijfer <- function(getal, omschrijving = "", omschrijving2 = "", niveau = character(3),
                            kleur = params$default_kleuren_grafiek[c(6, 4, 11)], kleur_outline = "#FFFFFF", 
                            kleur_getal = "#FFFFFF", kleur_omschrijving = "#305A5B"){
   
-  # Check input
-  if(length(getal) < 1 | length(getal) > 2 ) {
+  
+  #############
+  # Controles #
+  #############
+  
+  # Check hoeveel getallen er zijn ingevoerd
+  if(length(getal) < 1 | length(getal) > 3 ) {
     
     stop(glue("
-    Er is geen getal of meer dan 2 getallen ingevoerd. Dit kan niet.
-    Vul 1 of 2 getallen in als input.
+    Er is geen getal of meer dan 3 getallen ingevoerd. Dit kan niet.
+    Vul 1, 2 of 3 getallen in als input.
     niveaus: {paste(getal, collapse = ',')}"))
     
   }
   
-  alt_tekst <- getal
+  if (length(getal) != length(niveau)){
+    stop("Het aantal ingevoerde getallen komt niet overeen met het aantal opgegeven niveaus. Graag corrigeren.")
+  }
   
-  # Maak een stukje svg code aan waarin de ingevoerde tekst is opgenomen en een variabele voor het aanvullen van de alternatieve tekst
+  # Check of er niks anders dan gemeente, regio of nl is ingevuld bij niveau.
+  if (FALSE %in% niveau %in% c("Gemeente", "Regio", "Landelijk")){
+    stop("Er is onder de parameter 'niveau' iets anders ingevuld dan 'Gemeente', 'Regio' of 'Landelijk'. Graag corrigeren. Let op hoofdlettergebruik.")
+  }
+  
+  # Check of er een omschrijving is ingevuld
+  if(omschrijving == "" & omschrijving2 == ""){
+    stop("Er is geen omschrijving ingevuld. Voeg een beschrijving toe.")
+  }
+  
+  
+  #############
+  # Alt-tekst #
+  #############
+  
+  # Initialiseer de alt-tekst
+  alt_tekst <- character()
+  
+  # Maak de alt-tekst. 
+  for (i in 1:length(getal)){
+    
+    if (niveau[i] %in% c("Gemeente", "Regio")){
+      alt_tekst <- paste0(alt_tekst, getal[i], " ", omschrijving, " ", omschrijving2, " in de ", niveau[i], ". ")
+    }
+    else if (niveau[i] %in% c("Landelijk")){
+      alt_tekst <- paste0(alt_tekst, getal[i], " ", omschrijving, " ", omschrijving2, " in Nederland. ")
+    }
+    
+  }
+  
+  ########################## 
+  # Viewbox en coordinaten #
+  ##########################
+
+  # Bepaal hoe groot de viewbox moet zijn (grootte van de svg afbeelding)
+  viewbox <- case_when(length(getal) %in% c(1, 2) ~ "0 0 225 100",
+                       length(getal) == 3 ~ "0 0 300 100",
+                       .default = "0 0 225 100")
+
+
+  # Als je 1 bol hebt, zet het centrum van de cirkel qua x-coordinaat (cx) dan op 112 (= helft van x-as viewbox)
+  # Als je 2 bollen hebt, zet cx1 dan op 75 en cx2 op 150
+  # Als je 3 bollen hebt, zet cx dan op 75, 150, 225? 
+  
+  # Als je 1 bol hebt, zet niveau dan op x = 112, y = 60. Zet de indicator-omschrijving op x = 112, y = 80
+  # Als je 2 bollen hebt, zet niveau1 dan op x = 75, y = 60 en niveau2 op x = 150, y = 60. Zet de indicator-omschrijving op x = 112, y = 80
+  # Bij 3 bollen indicator omschrijving op x= 150.
+  
+  # => niveau en cx hebben dezelfde x-coordinaat. Niveau staat qua y-coordinaat op 60.
+  # Indicatoromschrijving staat op de helft van de grootte van de viewbox.
+  
+  
+  
+  ################
+  # Omschrijving #
+  ################
+  
+  # Maak een stukje svg code aan waarin de ingevoerde tekst is opgenomen
   tekst <- c()
   
   for (regel in c(omschrijving, omschrijving2)){
-    if(!is.na(regel)){
-      
-      alt_tekst <- paste(alt_tekst, regel)
+    if(regel != ""){
       
       if(length(tekst) == 0){
-        
         tekst <- paste0('<tspan>', regel, '</tspan>')
         
-      } else if (length(tekst) > 0){
-        
-        tekst <- paste0(tekst, '<tspan x=112 text-anchor="middle" dy="1em">', regel, '</tspan>')
-        
-      }
-    } else {
-      
-      # Als geen omschrijving meegegeven is, voer dan spatie in
-      if(length(tekst) == 0){
-        
-        tekst <- paste0('<tspan>', " ", '</tspan>')
-        
-      } else if (length(tekst) > 0){
-        
-        tekst <- paste0(tekst, '<tspan x=112 text-anchor="middle" dy="1em">', " ", '</tspan>')
+      } else {
+        if (length(getal) %in% c(1, 2)){
+          tekst <- paste0(tekst, '<tspan x=112 text-anchor="middle" dy="1em">', regel, '</tspan>')
+        } else if (length(getal) == 3){
+          tekst <- paste0(tekst, '<tspan x=150 text-anchor="middle" dy="1em">', regel, '</tspan>')
+        }
         
       }
     }
   }
   
-  # Voeg niveau toe aan alt_tekst en bepaal kleur
-  if(any(!is.na(niveau))) {
-    
-    alt_tekst <- paste(alt_tekst, "in de", niveau)
-    
-    # kleur <- ifelse(niveau == "Gemeente", kleur[1],
-    #                 ifelse(niveau == "Regio", kleur[2],
-    #                        kleur[3]))
-    # 
-  } else {
-    
-    # Als geen niveau meegegeven is, voer dan spatie in
-    niveau = " "
-    
-    kleur <- kleur[3]
-    
-  }
+  #################
+  # Maak svg code #
+  #################
   
-  if (is.na(omschrijving) & is.na(omschrijving) & length(getal) == 1) {
-    # Als geen omschrijvingen en 1 getal, maak dan de afbeelding kleiner.
+  # Pogingen gedaan voor elegantere manier met minder code-herhaling, maar dat kostte teveel tijd en is in onderhoud waarschijnlijk lastiger. Daarom maar hardcoden.
+  
+  if (length(getal) == 1){
     
-    viewbox = "0 0 50 75"
-    
-    # Voeg de ingevoerde informatie op de juiste plekken in de svg code met behulp van glue
     svg_code <- glue::glue('<svg role="img" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality;"
-                viewBox="{viewbox}"> # Origineel 0 0 225 75
-                <title>{alt_tekst}</title>
-                
-                <g id="circle">
-                    <circle style="fill:{kleur};" cx="25" cy="25" r="25" stroke = "{kleur_outline}">
-                    </circle>
-                    <text x=25 y="25" text-anchor="middle" fill="{kleur_getal}" stroke="{kleur_getal}" stroke-width="1px" dy=".3em" font-size="1em">{getal}</text>
-                </g>
-                
-                <g id="niveau">
-                <text x=25 y="60" text-anchor="middle" fill="{kleur}" stroke="{kleur}" stroke-width="0.01px" dy=".3em" font-size="0.5em" font-weight = "bold">{niveau}</text>
-                </g>
-                
-                </svg>')
-    
-  } else {
-    # Grotere viewbox bij omschrijving of 2 getallen en geen omschrijving
-    
-    viewbox = "0 0 225 100"
-    
-    # svg-code afhankelijk van 1 of 2 getallen als input
-    if (length(getal) == 1) {
-      # svg_code voor 1 getal
-      # Voeg de ingevoerde informatie op de juiste plekken in de svg code met behulp van glue
-      svg_code <- glue::glue('<svg role="img" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality;"
-                viewBox="{viewbox}"> # Origineel 0 0 225 75
+                viewBox="{viewbox}"> 
                 <title>{alt_tekst}</title>
                 
                 <g id="circle">
@@ -2997,15 +3006,11 @@ bol_met_cijfer <- function(getal, omschrijving = NA, omschrijving2 = NA, niveau 
                 </g>
                 
                 </svg>')
-      
-    } else {
-      # alt_tekst in één zin zetten
-      alt_tekst = paste0(alt_tekst[1], ". ", alt_tekst[2])
-      
-      # svg_code voor 2 getallen
-      # Voeg de ingevoerde informatie op de juiste plekken in de svg code met behulp van glue
-      svg_code <- glue::glue('<svg role="img" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality;"
-                viewBox="{viewbox}"> # Origineel 0 0 225 75
+    
+  } else if (length(getal) == 2){
+    
+    svg_code <- glue::glue('<svg role="img" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality;"
+                viewBox="{viewbox}"> 
                 <title>{alt_tekst}</title>
                 
                 <g id="circle">
@@ -3033,9 +3038,48 @@ bol_met_cijfer <- function(getal, omschrijving = NA, omschrijving2 = NA, niveau 
                 </g>
                 
                 </svg>')
-      
-    }
     
+  } else if (length(getal) == 3){
+    
+    svg_code <- glue::glue('<svg role="img" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality;"
+                viewBox="{viewbox}"> 
+                <title>{alt_tekst}</title>
+                
+                <g id="circle">
+                    <circle style="fill:{kleur[1]};" cx="75" cy="25" r="25" stroke = "{kleur_outline}">
+                    </circle>
+                    <text x=75 y="25" text-anchor="middle" fill="{kleur_getal}" stroke="{kleur_getal}" stroke-width="1px" dy=".3em" font-size="1em">{getal[1]}</text>
+                </g>
+                
+                <g id="niveau">
+                <text x=75 y="60" text-anchor="middle" fill="{kleur[1]}" stroke="{kleur[1]}" stroke-width="0.01px" dy=".3em" font-size="0.5em" font-weight = "bold">{niveau[1]}</text>
+                </g>
+                
+                <g id="circle">
+                    <circle style="fill:{kleur[2]};" cx="150" cy="25" r="25" stroke = "{kleur_outline}">
+                    </circle>
+                    <text x=150 y="25" text-anchor="middle" fill="{kleur_getal}" stroke="{kleur_getal}" stroke-width="1px" dy=".3em" font-size="1em">{getal[2]}</text>
+                </g>
+                
+                <g id="niveau">
+                <text x=150 y="60" text-anchor="middle" fill="{kleur[2]}" stroke="{kleur[2]}" stroke-width="0.01px" dy=".3em" font-size="0.5em" font-weight = "bold">{niveau[2]}</text>
+                </g>
+                
+                <g id="circle">
+                    <circle style="fill:{kleur[3]};" cx="225" cy="25" r="25" stroke = "{kleur_outline}">
+                    </circle>
+                    <text x=225 y="25" text-anchor="middle" fill="{kleur_getal}" stroke="{kleur_getal}" stroke-width="1px" dy=".3em" font-size="1em">{getal[3]}</text>
+                </g>
+                
+                <g id="niveau">
+                <text x=225 y="60" text-anchor="middle" fill="{kleur[3]}" stroke="{kleur[3]}" stroke-width="0.01px" dy=".3em" font-size="0.5em" font-weight = "bold">{niveau[3]}</text>
+                </g>
+                
+                <g id="tekst">
+                <text x=150 y="80" text-anchor="middle" fill="{kleur_omschrijving}" stroke="{kleur_omschrijving}" stroke-width="0.01px" dy=".3em" font-size="0.5em" font-style = "italic">{tekst}</text>
+                </g>
+                
+                </svg>')
   }
   
   return(svg_code %>% knitr::raw_html())
@@ -3721,8 +3765,11 @@ maak_top <- function(data, var_inhoud, toon_label = T, value = 1, niveau = "regi
   }
 }
 
-maak_percentage <- function(data, var_inhoud, value = 1, niveau = "regio",
-                            huidig_jaar = 2024, var_jaar = "AGOJB401",
+maak_percentage <- function(data, var_inhoud, value = 1, design,
+                            niveau = "regio",
+                            gemeentekolom = NULL,
+                            stratum_kolom = NULL,
+                            # huidig_jaar = 2024, var_jaar = "AGOJB401",
                             ongewogen = FALSE,
                             subset_var = NULL,
                             subset_val = NULL,
@@ -3731,64 +3778,56 @@ maak_percentage <- function(data, var_inhoud, value = 1, niveau = "regio",
                             
 ) {
   
-  # Input is één dichotome variabele met één niveau 
-  if(length(niveau) > 1 | length(var_inhoud) > 1){
+  # Als niveau gemeente is, dan moeten de data en het design worden gesubset
+  if (niveau %in% "gemeente"){
     
-    stop(glue("
-    Percentage kan niet berekend worden over meerdere niveaus en/of meerdere variabelen.
-    Selecteer 1 niveau en 1 variabele.
-    niveaus: {paste(niveau, collapse = ',')}
-    var_inhoud: {paste(var_inhoud, collapse = ',')}"))
+    if (typeof(params$gemeentecode) != typeof(data[[gemeentekolom]])){
+      stop("Het datatype van de gemeentecode opgenomen in de parameters van het Quarto document (params$gemeentecode) en het type van de data in de gemeentekolom van het
+           SPSS bestand komen niet overeen (De een is waarschijnlijk een getal en de ander een string). Pas ofwel het SPSS bestand aan of de gemeentecode in de parameter-lijst")
+    }
     
-  }
-  
-  # Design en dataset bepalen o.b.v. niveau
-  if(niveau == "nl"){
-    
-    design_x <- design_land
-    subset_x <- data
-    
-  } else if(niveau == "regio"){
-    
-    design_x <- design_regio
-    subset_x <- data %>% filter(GGDregio == params$regiocode)
-    
-  } else if (niveau == "gemeente"){
-    
-    design_x <- design_gem
-    subset_x <- data %>% 
-      filter(Gemeentecode == params$gemeentecode) %>%
-      filter(!is.na(Standaardisatiefactor_gemeente))
-    
-  } else{
-    
-    stop(glue("niveau bestaat niet
-              niveau: {niveau}"))
+    design_temp <<- subset(design, get(gemeentekolom) == params$gemeentecode)
+    data_temp <<- data %>% 
+      filter(!!sym(gemeentekolom) == params$gemeentecode) %>%
+      filter(!is.na(!!sym(stratum_kolom)))
     
   }
+  # Als niveau regio of landelijk is, dan hoeft er niks met de data en de designs te gebeuren. 
+  else {
+    
+    # Kopieer data en design, zodat deze bewerkt kunnen worden en in de global environment kunnen worden opgeslagen. Opslaan in global is nodig om de survey functies goed te 
+    # laten werken. Je wilt het origineel echter wel behouden.
+    
+    design_temp <<- design
+    data_temp <<- data
+    
+  }
+
   
-  #Optie voor Inhoudelijke subset; tbv https://github.com/ggdatascience/gmjv-landelijk-format/issues/93
+  
+  # Optie voor Inhoudelijke subset; tbv https://github.com/ggdatascience/gmjv-landelijk-format/issues/93
+  # Hierbij wordt niet de gehele populatie als noemer genomen, maar kun je zelf aangeven wat je als noemer wilt hebben.
+  # Bijv: “…% van de LHBTQIA+ers heeft … , dit is …% van de hele groep jongvolwassenen.”
   if(!is.null(subset_var) & !is.null(subset_val)){
     
-    design_x <- subset(design_x, get(subset_var) == subset_val) #design subsetten
-    subset_x <- subset_x %>%
+    design_temp <<- subset(design_temp, get(subset_var) == subset_val) #design subsetten
+    data_temp <<- data_temp %>%
       filter(!!sym(subset_var) == subset_val) #data subsetten
   }
-  
-  
-  #Ongewogen berekening
+
+  # Ongewogen berekening
   if(ongewogen){
-    # Filter op juiste jaar
-    subset_x <- subset_x %>% 
-      filter(!!sym(var_jaar) == huidig_jaar)
+    # # Filter op juiste jaar
+    # subset_x <- subset_x %>% 
+    #   filter(!!sym(var_jaar) == huidig_jaar)
     
-    tabel_percentage = subset_x %>% group_by(!!sym(var_inhoud)) %>% 
+    tabel_percentage = data_temp %>% group_by(!!sym(var_inhoud)) %>% 
       summarise(aantal = n()) %>% 
       ungroup() %>% 
       filter(!is.na(!!sym(var_inhoud))) %>% #missing wissen
       mutate(totaal = sum(aantal),
              percentage = round(aantal / totaal * 100, 0)) #%>% 
-    #filter(!!sym(var_inhoud) %in% value)
+    # filter(!!sym(var_inhoud) %in% value)
     
     # Checken of kleine & grote N is voldaan
     tabel_percentage$percentage <- 
@@ -3797,14 +3836,33 @@ maak_percentage <- function(data, var_inhoud, value = 1, niveau = "regio",
                 TRUE ~ paste0(tabel_percentage$percentage,"%"))
     
     
-    # # Checken of er nog labels missen, dan zijn hebben deze groepen 0 respondenten en moeten dus niet getoond worden
-    if (length(val_labels(monitor_df[[var_inhoud]])) != nrow(tabel_percentage)) {
-      tabel_percentage$percentage <- "-%"
-    }
+    ######################
+    ######################
+    
+    
+    
+    # Nog oplossen
+    
+    
+    
+    
+    
+    
+    
+    
+    ### Opmerking Jolien: Hieronder een probleem. monitor_df gaat over de complete dataset. Ik heb echter data van verschillende jaren in meerdere bestanden staan.
+    
+    # # # Checken of er nog labels missen, dan zijn hebben deze groepen 0 respondenten en moeten dus niet getoond worden
+    # if (length(val_labels(monitor_df[[var_inhoud]])) != nrow(tabel_percentage)) {
+    #   tabel_percentage$percentage <- "-%"
+    # }
+    
+    ######################
+    ######################
     
     tabel_percentage <- tabel_percentage %>% filter(!!sym(var_inhoud) %in% value)
     
-    #Checken of tabel leeg is: "-%"
+    # Checken of tabel leeg is: "-%"
     if (nrow(tabel_percentage) < 1) {
       return("-%")
     } else {
@@ -3812,13 +3870,7 @@ maak_percentage <- function(data, var_inhoud, value = 1, niveau = "regio",
     }
   }
   
-  # Standaard alleen laatste jaar overhouden
-  # Subset maken van design
-  design_temp <<- subset(design_x, get(var_jaar) == huidig_jaar)
-  
-  # Subset maken van data
-  data_temp <<- subset_x %>% filter(!!sym(var_jaar) == huidig_jaar)
-  
+
   # Bereken gewogen cijfers
   result <- bereken_kruistabel(data = data_temp,
                                survey_design = design_temp, 

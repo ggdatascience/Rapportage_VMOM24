@@ -17,29 +17,32 @@ format:
     embed-resources: true
     css: custom.css
 params:
-  gemeentecode: 1948
+  gemeentecode: "1948"
   regiocode: 21
   regionaam: "GGD Hart voor Brabant"
   path_hulpfuncties: "hulpfuncties.R"
   path_monitor_data_2024_landelijk: ""
   path_monitor_data_2024_regio: ""
-  path_monitor_data_2024_landelijk: ""
-  path_monitor_data_2024_regio: ""
-  path_monitor_data_2024: ""
-  path_monitor_data_2022: ""
-  path_monitor_data_2020: ""
-  path_monitor_data_2016: ""
+  path_monitor_data_2022_landelijk: "input/data/Landelijk_2022"
+  path_monitor_data_2022_regio: "input/data/Regio_2022"
+  path_monitor_data_2020_landelijk: "input/data/Trendbestand 2020_Landelijk"
+  path_monitor_data_2020_regio: "input/data/Totaal databestand ZeeBra VM+OM 2020_trend 2022"
+  path_monitor_data_2016_landelijk: "input/data/Trendbestand 2016_Landelijk"
+  path_monitor_data_2016_regio: "input/data/Totaal databestand ZeeBra VM+OM 2016_trend 2022"
+  path_monitor_data_2012_landelijk: "input/data/Trendbestand 2012_Landelijk"
+  path_monitor_data_2012_regio: "input/data/Totaal databestand ZeeBra VM+OM 2012_trend 2022"
+
   default_nvar: 100 # Minimum aantal invullers per vraag
   default_ncel: 10 # Minimum aantal invullers open antwoordoptie
-  default_kleuren_grafiek: !expr c("")
-  default_kleuren_responstabel: !expr C(")
+  default_kleuren_grafiek: !expr c("#002060", "#72D5FF", "#002060", "#72D5FF", "#AAD3CC", "#002060", "#401B65", "#86848D", "#739BD0", "#11265F", "#AAD3CC")
+  default_kleuren_responstabel: !expr c("header" = "#012C17", "kleur_1" = "#007E48", "kleur_2" = "#76B82A","kleur_tekst" = "#FFFFFF")
   is_pdf: false
 format-links: false
 
 ---
 
 ```{r Instellingen}
-#Libraries inladen
+# Libraries inladen
 # Het script maakt gebruik van een aantal packages
 # Deze moeten bij de eerste keer lokaal worden geinstalleerd
 
@@ -64,14 +67,58 @@ library(tidyr)
 library(haven)
 library(stringr) # Voor str_replace & str_wrap
 library(labelled) # Package om te werken met datalabels, o.a. voor to_character()
-library(survey) # Package om te werken met gewogen gemiddelds incl. betrouwbaarheidsintervallen
-library(glue) #om strings aangenaam aan elkaar te plakken
+library(survey) # Package om te werken met gewogen gemiddelden incl. betrouwbaarheidsintervallen
+library(glue) # om strings aangenaam aan elkaar te plakken
 library(forcats)
-library(openxlsx) #om cbs populatiebestand te kunnen lezen
-library(showtext) #om andere lettertypen te kunnen gebruiken
+library(openxlsx) # om Excel bestanden te kunnen lezen
+library(showtext) # om andere lettertypen te kunnen gebruiken
  
 options(dplyr.summarise.inform = FALSE)
 source(params$path_hulpfuncties)
+
+
+
+
+# Lees bestanden in. De eerste 2 regels kun je eenmalig uitvoeren om het SPSS bestand om te zetten naar een kleiner bestandsformaat. Als dit eenmaal gedaan is, kun je ze
+# uitcommenten en alleen de derde regel gebruiken.
+
+### Landelijk 2022
+# bestand <- read_spss(paste0(params$path_monitor_data_2022_landelijk, ".sav")) # Om een SPSS bestand in te lezen
+# saveRDS(bestand, file = paste0(params$path_monitor_data_2022_landelijk, ".rds")) # Om het ingelezen bestand op te slaan als R bestand. Voordeel: snellere laadtijd
+data_landelijk_2022 <- readRDS(paste0(params$path_monitor_data_2022_landelijk, ".rds")) %>%
+  labelled::user_na_to_na()
+
+# tijdelijke fix. Dit moet eigenlijk aan de SPSS kant goed geregeld worden.
+for(var in names(data_landelijk_2022)){
+  data_landelijk_2022 <- data_landelijk_2022 %>% verwijder_9_onbekend(var)
+}
+
+### Regio 2022
+# bestand <- read_spss(paste0(params$path_monitor_data_2022_regio, ".sav")) # Om een SPSS bestand in te lezen
+# saveRDS(bestand, file = paste0(params$path_monitor_data_2022_regio, ".rds")) # Om het ingelezen bestand op te slaan als R bestand. Voordeel: snellere laadtijd
+data_regio_2022 <- readRDS(paste0(params$path_monitor_data_2022_regio, ".rds")) %>%
+  labelled::user_na_to_na()
+  
+for(var in names(data_regio_2022)){
+  data_regio_2022 <- data_regio_2022 %>% verwijder_9_onbekend(var)
+}
+
+
+
+# Maak survey designs
+design_landelijk_2022 <- survey_design_maken(
+                         strata = 'PrimaireEenheid', 
+                         gewichten = 'ewGGD',
+                         data = data_landelijk_2022)
+
+design_regio_2022 <- survey_design_maken(
+                         strata = 'PrimaireEenheid', 
+                         gewichten = 'ewGGD',
+                         data = data_regio_2022)
+
+
+
+
 
 ```
 
